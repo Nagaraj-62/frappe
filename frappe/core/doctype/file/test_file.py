@@ -1185,6 +1185,12 @@ class TestAttachment(IntegrationTestCase):
 				{"label": "Title", "fieldname": "title", "fieldtype": "Data"},
 				{"label": "Attachment", "fieldname": "attachment", "fieldtype": "Attach"},
 				{
+					"label": "Fetched Attachment",
+					"fieldname": "fetched_attachment",
+					"fieldtype": "Attach Image",
+					"fetch_from": "title.something",
+				},
+				{
 					"label": "Items",
 					"fieldname": "items",
 					"fieldtype": "Table",
@@ -1222,6 +1228,45 @@ class TestAttachment(IntegrationTestCase):
 		)
 
 		self.assertTrue(exists)
+
+	def test_file_attachment_on_update_skips_fetch_from(self):
+		doc = frappe.get_doc(
+			doctype=self.test_doctype,
+			title="test skip fetch_from",
+			fetched_attachment="https://example.com/some_fetched_image.png",
+		).insert()
+
+		exists = frappe.db.exists(
+			"File",
+			{
+				"attached_to_doctype": self.test_doctype,
+				"attached_to_name": doc.name,
+				"attached_to_field": "fetched_attachment",
+			},
+		)
+		self.assertFalse(exists)
+
+	def test_long_remote_file_url_truncates_file_name(self):
+		long_token = "A" * 300
+		file = frappe.get_doc(
+			doctype="File",
+			file_url=f"https://lh3.googleusercontent.com/a/{long_token}",
+		).insert()
+
+		self.assertLessEqual(len(file.file_name), 140)
+		self.assertEqual(file.file_name, "A" * 140)
+		file.delete()
+
+		# With extension
+		file_with_ext = frappe.get_doc(
+			doctype="File",
+			file_url=f"https://example.com/assets/{'B' * 300}.png",
+		).insert()
+
+		self.assertLessEqual(len(file_with_ext.file_name), 140)
+		self.assertTrue(file_with_ext.file_name.endswith(".png"))
+		self.assertEqual(len(file_with_ext.file_name), 140)
+		file_with_ext.delete()
 
 	def test_url_attachment_is_attached_to_duplicated_document(self):
 		doc = frappe.get_doc(doctype=self.test_doctype, title="test url attachment on duplicate")

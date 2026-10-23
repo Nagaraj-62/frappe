@@ -373,6 +373,8 @@ def attach_files_to_document(doc: "Document", event) -> None:
 	# we dont want the update to fail if file cannot be attached for some reason
 	attach_fields = doc.meta.get("fields", {"fieldtype": ["in", ["Attach", "Attach Image"]]})
 	for df in attach_fields:
+		if df.fetch_from:
+			continue
 		candidates.append((df, doc.get(df.fieldname)))
 
 	table_fields = doc.meta.get("fields", {"fieldtype": "Table"})
@@ -388,6 +390,8 @@ def attach_files_to_document(doc: "Document", event) -> None:
 
 		for child_row in child_rows:
 			for child_df in child_attach_fields:
+				if child_df.fetch_from:
+					continue
 				candidates.append((child_df, child_row.get(child_df.fieldname)))
 
 	_attach_field_values(doc, candidates)

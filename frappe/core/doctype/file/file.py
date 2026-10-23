@@ -505,7 +505,14 @@ class File(Document):
 				exc=frappe.MandatoryError,
 			)
 		elif not self.file_name and self.file_url:
-			self.file_name = self.file_url.split("/")[-1].split("?")[0]
+			file_name = self.file_url.split("/")[-1].split("?")[0]
+			if len(file_name) > 140:
+				root, ext = os.path.splitext(file_name)
+				if ext and len(ext) < 20:
+					file_name = root[: 140 - len(ext)] + ext
+				else:
+					file_name = file_name[:140]
+			self.file_name = file_name
 		else:
 			self.file_name = re.sub(r"/", "", self.file_name)
 
